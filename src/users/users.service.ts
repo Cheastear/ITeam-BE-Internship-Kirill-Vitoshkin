@@ -1,47 +1,49 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
-
-import User from 'src/users/User.interface';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import User from './users.entity';
 
 @Injectable()
 export class UsersService {
-  private Users: User[] = [
-    {
-      id: 1,
-      name: 'Kirill',
-      email: 'qq.qq.com',
-    },
-    {
-      id: 2,
-      name: 'Tanya',
-      email: 'qwe@a.com',
-    },
-  ];
-  getUsers(): User[] {
-    return this.Users;
-  }
-  addUser(user: User): void {
-    if (this.Users.findIndex((elem) => elem.id === user.id) !== -1)
-      throw new BadRequestException('User with this id is already exist');
-    this.Users.push(user);
+  constructor(
+    @InjectRepository(User)
+    private usersRepository: Repository<User>,
+  ) {}
+
+  async getUsers(): Promise<User[]> {
+    return await this.usersRepository.find();
   }
 
-  changeUser(id: number, user: Partial<User>): User {
-    const userIndex = this.Users.findIndex((elem) => elem.id === id);
-    if (userIndex === -1) throw new NotFoundException('User not found');
-
-    this.Users[userIndex] = { ...this.Users[userIndex], ...user };
-
-    return this.Users[userIndex];
+  async getOneUser(id: number): Promise<User> {
+    return await this.usersRepository.findOneBy({ id });
   }
 
-  deleteUser(id: number): User {
-    const index = this.Users.findIndex((elem) => elem.id === id);
-    if (index === -1) throw new NotFoundException('User not found');
-    const user = this.Users.splice(index, 1)[0];
-    return user;
+  async addUser(user: User): Promise<User> {
+    return await this.usersRepository.save({ ...user, createdAt: new Date() });
+  }
+
+  async changeUser(id: number, user: Partial<User>): Promise<User> {
+    const dbUser = await this.usersRepository.findOneBy({ id });
+    if (!dbUser) throw new NotFoundException('User not found');
+
+    await this.usersRepository.save({
+      ...dbUser,
+      ...user,
+      id,
+      password: dbUser.password,
+      role: dbUser.role,
+      createdAt: dbUser.createdAt,
+    });
+
+    return await this.usersRepository.findOneBy({ id });
+  }
+
+  async deleteUser(id: number): Promise<User> {
+    const dbUser = await this.usersRepository.findOneBy({ id });
+    if (!dbUser) throw new NotFoundException('User not found');
+
+    await this.usersRepository.delete({ id });
+
+    return dbUser;
   }
 }

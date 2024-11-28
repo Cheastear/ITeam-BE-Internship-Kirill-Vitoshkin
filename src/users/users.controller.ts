@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -10,8 +9,8 @@ import {
   Post,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
-import User from './User.interface';
 import { ApiBody, ApiResponse } from '@nestjs/swagger';
+import User from './users.entity';
 
 @Controller('users')
 export class UsersController {
@@ -19,8 +18,8 @@ export class UsersController {
 
   @Get()
   @ApiResponse({ status: 200, description: 'OK', type: [User] })
-  getUsers(): User[] {
-    return this.UsersService.getUsers();
+  async getUsers(): Promise<User[]> {
+    return await this.UsersService.getUsers();
   }
 
   @Post()
@@ -28,14 +27,11 @@ export class UsersController {
   @ApiResponse({ status: 201, description: 'Created', type: User })
   @ApiResponse({
     status: 400,
-    description: 'Email or name is empty! Or id is already exist',
+    description: 'Email or name is empty!',
   })
   @ApiBody({ type: User })
-  addUser(@Body() user: User): User {
-    if (!(user.email && user.name)) throw new BadRequestException();
-
-    this.UsersService.addUser(user);
-    return user;
+  async addUser(@Body() user: User): Promise<User> {
+    return await this.UsersService.addUser(user);
   }
 
   @Patch(':id')
@@ -45,8 +41,11 @@ export class UsersController {
     status: 404,
     description: 'Id is invalid',
   })
-  changeUser(@Param('id') id: string, @Body() user: Partial<User>): User {
-    return this.UsersService.changeUser(+id, user);
+  async changeUser(
+    @Param('id') id: string,
+    @Body() user: Partial<User>,
+  ): Promise<User> {
+    return await this.UsersService.changeUser(+id, user);
   }
 
   @Delete(':id')
@@ -55,7 +54,7 @@ export class UsersController {
     status: 404,
     description: 'Id is invalid',
   })
-  deleteUser(@Param('id') id: string): User {
-    return this.UsersService.deleteUser(+id);
+  async deleteUser(@Param('id') id: string): Promise<User> {
+    return await this.UsersService.deleteUser(+id);
   }
 }
