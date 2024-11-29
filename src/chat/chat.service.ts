@@ -5,7 +5,6 @@ import Chat from './chat.entity';
 import Message from './message.entity';
 import { UsersService } from 'src/users/users.service';
 import CreateChatDto from 'src/dto/create-chat.dto';
-import { CreateMessageDto } from 'src/dto/create-message.dto';
 import CreateRemoveMemberDto from 'src/dto/create-remove-member.dto';
 
 @Injectable()
@@ -78,6 +77,8 @@ export class ChatService {
     if (!dbChat)
       throw new BadRequestException('Chat with this id is not exist');
 
+    if (dbChat.members.length === 1) return await this.removeChat(chatId);
+
     const index = await dbChat.members.findIndex((elem) => elem.id === userId);
     if (index === -1)
       throw new BadRequestException(
@@ -111,58 +112,13 @@ export class ChatService {
       where: { id: message.chatId },
       relations: ['members'],
     });
+    if (!dbChat)
+      throw new BadRequestException('Chat with this id is not exist');
 
     return (
       (await dbChat.members.findIndex(
         (elem) => elem.id === +message.userId,
       )) !== -1
     );
-  }
-
-  async createMessage(message: CreateMessageDto) {
-    return await this.messageRepository.save({
-      ...message,
-      createdAt: new Date(),
-      user: await this.userService.getOneUser(+message.user),
-    });
-  }
-
-  async addMessageToChat(message: Message) {
-    const dbChat = await this.chatRepository.findOne({
-      where: { id: +message.chat },
-      relations: ['messages'],
-    });
-    if (!dbChat)
-      throw new BadRequestException('Chat with this id is not exist');
-    await dbChat.messages.push(message);
-
-    return await this.chatRepository.save({
-      ...dbChat,
-      messages: dbChat.messages,
-    });
-  }
-
-  async updateMessage(messageId: number, message: Partial<CreateMessageDto>) {
-    if (
-      (
-        await this.messageRepository.update(messageId, {
-          content: message.content,
-        })
-      ).affected === 0
-    )
-      throw new BadRequestException(
-        `Message with id: ${messageId} is not exist`,
-      );
-
-    return await this.messageRepository.findOneBy({ id: messageId });
-  }
-
-  async deleteMessage(messageId: number) {
-    if ((await this.messageRepository.delete(messageId)).affected === 0)
-      throw new BadRequestException(
-        `Message with id: ${messageId} is not exist`,
-      );
-
-    return;
   }
 }

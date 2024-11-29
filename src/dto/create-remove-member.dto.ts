@@ -7,7 +7,6 @@ export default class CreateRemoveMemberDto {
     description: 'User id who you wanna remove from member`s list',
   })
   @IsInt()
-  @IsNotEmpty()
   userId: number;
 
   @ApiProperty({ example: 1, description: 'Chat id' })

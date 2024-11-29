@@ -8,17 +8,11 @@ export class CreateMessageDto {
   @ApiProperty({ example: 'Message for somebody', description: 'Message' })
   content: string;
 
-  @IsInt()
-  @ApiProperty({
-    type: () => User,
-    example: 1,
-    description: 'The user who sent the message send only user id',
-  })
   user: User;
 
   @IsInt()
   @ApiProperty({
-    type: () => User,
+    type: () => Chat,
     example: 1,
     description: 'The chat the message belongs to. Send only chat id',
   })
