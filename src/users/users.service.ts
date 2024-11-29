@@ -8,6 +8,7 @@ import { Repository } from 'typeorm';
 import User from './users.entity';
 import CreateUserDto from 'src/dto/create-user.dto';
 import CreateAuthDto from 'src/dto/create-auth.dto';
+import { paginate, Paginated, PaginateQuery } from 'nestjs-paginate';
 
 @Injectable()
 export class UsersService {
@@ -16,8 +17,17 @@ export class UsersService {
     private usersRepository: Repository<User>,
   ) {}
 
-  async getUsers(): Promise<User[]> {
-    return await this.usersRepository.find();
+  async findAll(query: PaginateQuery): Promise<Paginated<User>> {
+    return paginate<User>(query, this.usersRepository, {
+      sortableColumns: [
+        'id',
+        'username',
+        'firstName',
+        'lastName',
+        'dateOfBirth',
+        'role',
+      ],
+    });
   }
 
   async getOneUser(id: number): Promise<User> {

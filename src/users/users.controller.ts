@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Patch,
+  Query,
   Request,
   UseGuards,
 } from '@nestjs/common';
@@ -12,17 +13,20 @@ import { ApiBody, ApiResponse } from '@nestjs/swagger';
 import User from './users.entity';
 import CreateUserDto from 'src/dto/create-user.dto';
 import JwtAuthGuard from 'src/auth/jwt-auth.guard';
+import { Paginated } from 'nestjs-paginate';
 
 @Controller('users')
 export class UsersController {
-  constructor(private readonly UsersService: UsersService) {}
+  constructor(private readonly usersService: UsersService) {}
 
   @Get()
-  @UseGuards(JwtAuthGuard)
   @ApiResponse({ status: 200, description: 'OK' })
-  @ApiResponse({ status: 400, description: 'User not found' })
-  async getUser(@Request() req): Promise<User> {
-    return await this.UsersService.getOneUser(req.user.id);
+  async getPaginatedUsers(
+    @Request() req,
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+  ): Promise<Paginated<User>> {
+    return this.usersService.findAll({ page, limit, path: req.path });
   }
 
   @Patch()
@@ -38,7 +42,7 @@ export class UsersController {
     @Request() req,
     @Body() user: Partial<CreateUserDto>,
   ): Promise<User> {
-    return await this.UsersService.changeUser(req.user.id, user);
+    return await this.usersService.changeUser(req.user.id, user);
   }
 
   @Delete()
@@ -49,6 +53,6 @@ export class UsersController {
     description: 'Id is invalid',
   })
   async deleteUser(@Request() req): Promise<User> {
-    return await this.UsersService.deleteUser(req.user.id);
+    return await this.usersService.deleteUser(req.user.id);
   }
 }
