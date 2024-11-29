@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   HttpCode,
+  HttpStatus,
   Param,
   Patch,
   Post,
@@ -11,6 +12,7 @@ import {
 import { UsersService } from './users.service';
 import { ApiBody, ApiResponse } from '@nestjs/swagger';
 import User from './users.entity';
+import CreateUserDto from 'src/dto/create-user.dto';
 
 @Controller('users')
 export class UsersController {
@@ -23,19 +25,18 @@ export class UsersController {
   }
 
   @Post()
-  @HttpCode(201)
+  @HttpCode(HttpStatus.CREATED)
   @ApiResponse({ status: 201, description: 'Created', type: User })
   @ApiResponse({
     status: 400,
     description: 'Email or name is empty!',
   })
-  @ApiBody({ type: User })
-  async addUser(@Body() user: User): Promise<User> {
+  async addUser(@Body() user: CreateUserDto): Promise<User> {
     return await this.UsersService.addUser(user);
   }
 
   @Patch(':id')
-  @ApiBody({ type: User })
+  @ApiBody({ type: CreateUserDto })
   @ApiResponse({ status: 200, description: 'OK', type: User })
   @ApiResponse({
     status: 404,
@@ -43,7 +44,7 @@ export class UsersController {
   })
   async changeUser(
     @Param('id') id: string,
-    @Body() user: Partial<User>,
+    @Body() user: Partial<CreateUserDto>,
   ): Promise<User> {
     return await this.UsersService.changeUser(+id, user);
   }

@@ -1,89 +1,137 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   Patch,
   Post,
 } from '@nestjs/common';
 import { ChatService } from './chat.service';
-import Message from './message.entity';
-import { ApiBody, ApiProperty } from '@nestjs/swagger';
-import Chat from './chat.entity';
-
-class AddMember {
-  @ApiProperty({
-    example: [1],
-    description: 'List of user`s id who you wanna add to member`s list',
-  })
-  users: number[];
-  @ApiProperty({ example: 1, description: 'Chat id' })
-  chatId: number;
-}
-
-class RemoveMember {
-  @ApiProperty({
-    example: 1,
-    description: 'User id who you wanna remove from member`s list',
-  })
-  userId: number;
-  @ApiProperty({ example: 1, description: 'Chat id' })
-  chatId: number;
-}
+import { ApiBody, ApiResponse } from '@nestjs/swagger';
+import CreateChatDto from 'src/dto/create-chat.dto';
+import { CreateMessageDto } from 'src/dto/create-message.dto';
+import CreateMemberDto from 'src/dto/create-member.dto';
+import CreateRemoveMemberDto from 'src/dto/create-remove-member.dto';
 
 @Controller('chat')
 export class ChatController {
   constructor(private readonly chatService: ChatService) {}
 
   @Get(':chatId')
+  @ApiResponse({ status: 200, description: 'OK' })
+  @ApiResponse({ status: 400, description: 'Chat with this id is not exist' })
   async getChat(@Param('chatId') chatId: number) {
     return await this.chatService.getChat(chatId);
   }
 
   @Post()
-  async createChat(@Body() chat: Chat) {
+  @HttpCode(HttpStatus.CREATED)
+  @ApiResponse({ status: 201, description: 'Created' })
+  @ApiResponse({
+    status: 400,
+    description: 'User with this id is not exist',
+  })
+  @ApiResponse({
+    status: 400,
+    description: `User with this id already in that chat`,
+  })
+  async createChat(@Body() chat: CreateChatDto) {
     return await this.chatService.createChat(chat);
   }
 
   @Patch('members')
-  @ApiBody({ type: AddMember })
-  async addMemberToChat(@Body() { users, chatId }: AddMember) {
+  @ApiBody({ type: CreateMemberDto })
+  @HttpCode(HttpStatus.CREATED)
+  @ApiResponse({ status: 201, description: 'Created' })
+  @ApiResponse({
+    status: 400,
+    description: 'User with this id is not exist',
+  })
+  @ApiResponse({
+    status: 400,
+    description: `User with this id already in that chat`,
+  })
+  async addMemberToChat(@Body() { users, chatId }: CreateMemberDto) {
     await users.forEach(async (elem) => {
       await this.chatService.addMember(elem, chatId);
     });
-    return await this.chatService.getChatMembers(chatId);
+    return await this.chatService.getChat(chatId);
   }
 
   @Delete('members')
-  @ApiBody({ type: RemoveMember })
-  async removeMemberFromChat(@Body() { userId, chatId }: RemoveMember) {
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiBody({ type: CreateRemoveMemberDto })
+  @ApiResponse({ status: 204 })
+  @ApiResponse({
+    status: 400,
+    description: 'This user is already removed from this chat',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Chat with this id is not exist',
+  })
+  async removeMemberFromChat(
+    @Body() { userId, chatId }: CreateRemoveMemberDto,
+  ) {
     return await this.chatService.removeMember(userId, chatId);
   }
 
   @Delete(':chatId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiResponse({ status: 204 })
+  @ApiResponse({
+    status: 400,
+    description: `Chat with this id in not exitst`,
+  })
   async deleteChat(@Param('chatId') chatId: string) {
-    this.chatService.removeChat(+chatId);
+    await this.chatService.removeChat(+chatId);
   }
 
   @Post('message/')
-  @ApiBody({ type: Message })
-  async createChatMessage(@Body() message: Message) {
+  @HttpCode(HttpStatus.CREATED)
+  @ApiBody({ type: CreateMessageDto })
+  @ApiResponse({ status: 201, description: 'Message created' })
+  async createChatMessage(@Body() message: CreateMessageDto) {
+    if (
+      !(await this.chatService.isUserInMembers({
+        userId: +message.user,
+        chatId: +message.chat,
+      }))
+    )
+      throw new BadRequestException('This user is not in members of this chat');
+
     const dbMessage = await this.chatService.createMessage(message);
 
     return await this.chatService.addMessageToChat(dbMessage);
   }
 
   @Patch('message/:messageId')
-  @ApiBody({ type: Message })
+  @ApiBody({ type: CreateMessageDto })
+  @ApiResponse({
+    status: 200,
+  })
+  @ApiResponse({
+    status: 400,
+    description: `Message with this id is not exist`,
+  })
   async editMessage(
     @Param('messageId') messageId: string,
-    @Body() message: Message,
+    @Body() message: Partial<CreateMessageDto>,
   ) {
     return await this.chatService.updateMessage(+messageId, message);
   }
 
   @Delete('message/:messageId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiResponse({ status: 204, description: 'Ok' })
+  @ApiResponse({
+    status: 400,
+    description: 'Message with this ida is not exist',
+  })
   async removeMessage(@Param('messageId') messageId: string) {
     return await this.chatService.deleteMessage(+messageId);
   }

@@ -4,6 +4,9 @@ import { Repository } from 'typeorm';
 import Chat from './chat.entity';
 import Message from './message.entity';
 import { UsersService } from 'src/users/users.service';
+import CreateChatDto from 'src/dto/create-chat.dto';
+import { CreateMessageDto } from 'src/dto/create-message.dto';
+import CreateRemoveMemberDto from 'src/dto/create-remove-member.dto';
 
 @Injectable()
 export class ChatService {
@@ -29,10 +32,10 @@ export class ChatService {
     });
     if (!dbChat) throw new BadRequestException(chatId);
 
-    return dbChat.members;
+    return await dbChat.members;
   }
 
-  async createChat(chat: Chat) {
+  async createChat(chat: CreateChatDto) {
     const newChat = await this.chatRepository.save({
       ...chat,
       members: [],
@@ -57,12 +60,12 @@ export class ChatService {
       where: { id: chatId },
       relations: ['members'],
     });
-    if (dbChat.members.findIndex((elem) => elem.id === dbUser.id) !== -1)
+    if (await this.isUserInMembers({ userId, chatId }))
       throw new BadRequestException(
         `User with id: ${dbUser.id} already in that chat`,
       );
 
-    dbChat.members.push(dbUser);
+    await dbChat.members.push(dbUser);
 
     return await this.chatRepository.save(dbChat);
   }
@@ -103,7 +106,20 @@ export class ChatService {
     return await this.chatRepository.findOneBy({ id: chatId });
   }
 
-  async createMessage(message: Message) {
+  async isUserInMembers(message: CreateRemoveMemberDto) {
+    const dbChat = await this.chatRepository.findOne({
+      where: { id: message.chatId },
+      relations: ['members'],
+    });
+
+    return (
+      (await dbChat.members.findIndex(
+        (elem) => elem.id === +message.userId,
+      )) !== -1
+    );
+  }
+
+  async createMessage(message: CreateMessageDto) {
     return await this.messageRepository.save({
       ...message,
       createdAt: new Date(),
@@ -118,8 +134,7 @@ export class ChatService {
     });
     if (!dbChat)
       throw new BadRequestException('Chat with this id is not exist');
-
-    dbChat.messages.push(message);
+    await dbChat.messages.push(message);
 
     return await this.chatRepository.save({
       ...dbChat,
@@ -127,7 +142,7 @@ export class ChatService {
     });
   }
 
-  async updateMessage(messageId: number, message: Partial<Message>) {
+  async updateMessage(messageId: number, message: Partial<CreateMessageDto>) {
     if (
       (
         await this.messageRepository.update(messageId, {
