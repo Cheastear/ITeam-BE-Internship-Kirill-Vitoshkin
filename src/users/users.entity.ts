@@ -7,7 +7,7 @@ import {
   ManyToMany,
 } from 'typeorm';
 import Chat from 'src/chat/chat.entity';
-import Message from 'src/chat/message.entity';
+import Message from 'src/chat/message/message.entity';
 
 @Entity()
 export default class User {

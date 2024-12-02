@@ -15,18 +15,13 @@ import {
 import { ChatService } from './chat.service';
 import { ApiBody, ApiResponse } from '@nestjs/swagger';
 import CreateChatDto from 'src/dto/create-chat.dto';
-import { CreateMessageDto } from 'src/dto/create-message.dto';
 import CreateMemberDto from 'src/dto/create-member.dto';
 import CreateRemoveMemberDto from 'src/dto/create-remove-member.dto';
 import JwtAuthGuard from 'src/auth/jwt-auth.guard';
-import { MessageService } from './message.service';
 
 @Controller('chat')
 export class ChatController {
-  constructor(
-    private readonly chatService: ChatService,
-    private readonly messageService: MessageService,
-  ) {}
+  constructor(private readonly chatService: ChatService) {}
 
   @Get(':chatId')
   @UseGuards(JwtAuthGuard)
@@ -134,60 +129,5 @@ export class ChatController {
     )
       throw new UnauthorizedException();
     await this.chatService.removeChat(+chatId);
-  }
-
-  @Post('message/')
-  @UseGuards(JwtAuthGuard)
-  @HttpCode(HttpStatus.CREATED)
-  @ApiBody({ type: CreateMessageDto })
-  @ApiResponse({ status: 201, description: 'Message created' })
-  async createChatMessage(@Request() req, @Body() message: CreateMessageDto) {
-    if (
-      !(await this.chatService.isUserInMembers({
-        chatId: +message.chat,
-        userId: req.user.id,
-      }))
-    )
-      throw new UnauthorizedException();
-
-    message.user = req.user.id;
-
-    const dbMessage = await this.messageService.createMessage(message);
-
-    return await this.messageService.addMessageToChat(dbMessage);
-  }
-
-  @Patch('message/:messageId')
-  @UseGuards(JwtAuthGuard)
-  @ApiBody({ type: CreateMessageDto })
-  @ApiResponse({
-    status: 200,
-  })
-  @ApiResponse({
-    status: 400,
-    description: `Message with this id is not exist`,
-  })
-  async editMessage(
-    @Request() req,
-    @Param('messageId') messageId: string,
-    @Body() message: Partial<CreateMessageDto>,
-  ) {
-    if (!(await this.messageService.isMessageInUser(req.user.id, +messageId)))
-      throw new UnauthorizedException();
-    return await this.messageService.updateMessage(+messageId, message);
-  }
-
-  @Delete('message/:messageId')
-  @UseGuards(JwtAuthGuard)
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiResponse({ status: 204, description: 'Ok' })
-  @ApiResponse({
-    status: 400,
-    description: 'Message with this ida is not exist',
-  })
-  async removeMessage(@Request() req, @Param('messageId') messageId: string) {
-    if (!(await this.messageService.isMessageInUser(req.user.id, +messageId)))
-      throw new UnauthorizedException();
-    return await this.messageService.deleteMessage(+messageId);
   }
 }

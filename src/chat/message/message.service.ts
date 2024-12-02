@@ -1,10 +1,16 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import Chat from './chat.entity';
+import Chat from '../chat.entity';
 import Message from './message.entity';
 import { CreateMessageDto } from 'src/dto/create-message.dto';
 import { UsersService } from 'src/users/users.service';
+import { MessageGateway } from './message.gateway';
+import { ChatService } from '../chat.service';
 
 @Injectable()
 export class MessageService {
@@ -14,14 +20,28 @@ export class MessageService {
     @InjectRepository(Message)
     private messageRepository: Repository<Message>,
     private userService: UsersService,
+    private chatService: ChatService,
+    private messageGateway: MessageGateway,
   ) {}
 
   async createMessage(message: CreateMessageDto) {
-    return await this.messageRepository.save({
+    if (
+      !(await this.chatService.isUserInMembers({
+        chatId: +message.chat,
+        userId: +message.user,
+      }))
+    )
+      throw new UnauthorizedException();
+
+    const createdMessage = await this.messageRepository.save({
       ...message,
       createdAt: new Date(),
       user: await this.userService.getOneUser(+message.user),
     });
+
+    this.messageGateway.sendMessage(+message.chat, createdMessage);
+
+    return createdMessage;
   }
 
   async addMessageToChat(message: Message) {

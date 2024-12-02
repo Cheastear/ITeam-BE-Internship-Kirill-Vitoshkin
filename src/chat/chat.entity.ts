@@ -8,7 +8,7 @@ import {
   CreateDateColumn,
 } from 'typeorm';
 import User from 'src/users/users.entity';
-import Message from './message.entity';
+import Message from './message/message.entity';
 
 @Entity()
 export default class Chat {

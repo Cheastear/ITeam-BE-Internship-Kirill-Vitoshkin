@@ -1,8 +1,12 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import Chat from './chat.entity';
-import Message from './message.entity';
+import Message from './message/message.entity';
 import { UsersService } from 'src/users/users.service';
 import CreateChatDto from 'src/dto/create-chat.dto';
 import CreateRemoveMemberDto from 'src/dto/create-remove-member.dto';
@@ -112,8 +116,7 @@ export class ChatService {
       where: { id: message.chatId },
       relations: ['members'],
     });
-    if (!dbChat)
-      throw new BadRequestException('Chat with this id is not exist');
+    if (!dbChat) throw new UnauthorizedException();
 
     return (
       (await dbChat.members.findIndex(
