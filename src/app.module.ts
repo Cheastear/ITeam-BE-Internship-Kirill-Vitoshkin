@@ -14,9 +14,9 @@ import { MessageModule } from './chat/message/message.module';
 @Module({
   imports: [
     UsersModule,
-    ChatModule,
     AuthModule,
     MessageModule,
+    ChatModule,
     TypeOrmModule.forRoot({
       type: 'postgres',
       url: process.env.DB_CONNECT,

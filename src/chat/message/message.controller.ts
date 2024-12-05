@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  Get,
   HttpCode,
   HttpStatus,
   Param,
@@ -15,10 +16,34 @@ import { ApiBody, ApiResponse } from '@nestjs/swagger';
 import JwtAuthGuard from 'src/auth/jwt-auth.guard';
 import { CreateMessageDto } from 'src/dto/create-message.dto';
 import { MessageService } from './message.service';
+import GetMessageDto from 'src/dto/get-message-dto';
+import { ChatService } from '../chat.service';
 
 @Controller('chat/message')
 export class MessageController {
-  constructor(private readonly messageService: MessageService) {}
+  constructor(
+    private readonly messageService: MessageService,
+    private readonly chatService: ChatService,
+  ) {}
+
+  @Get()
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiBody({ type: GetMessageDto })
+  async getMessagesFromId(@Request() req, @Body() body: GetMessageDto) {
+    if (
+      !(await this.chatService.isUserInMembers({
+        chatId: body.chatId,
+        userId: req.user.id,
+      }))
+    )
+      throw new UnauthorizedException();
+
+    return await this.messageService.getMessagesFromId(
+      body.messageId,
+      body.chatId,
+    );
+  }
 
   @Post('')
   @UseGuards(JwtAuthGuard)

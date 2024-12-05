@@ -20,7 +20,7 @@ export default class Message {
   user: User;
 
   @ManyToOne(() => Chat, (chat) => chat.messages)
-  chat: Chat;
+  chat: Chat | number;
 
   @CreateDateColumn()
   createdAt: Date;

@@ -4,7 +4,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { MoreThan, Repository } from 'typeorm';
 import Chat from '../chat.entity';
 import Message from './message.entity';
 import { CreateMessageDto } from 'src/dto/create-message.dto';
@@ -42,6 +42,13 @@ export class MessageService {
     this.messageGateway.sendMessage(+message.chat, createdMessage);
 
     return createdMessage;
+  }
+
+  async getMessagesFromId(messageId: number, chatId: number) {
+    return await this.messageRepository.findBy({
+      id: MoreThan(messageId),
+      chat: { id: chatId },
+    });
   }
 
   async addMessageToChat(message: Message) {
