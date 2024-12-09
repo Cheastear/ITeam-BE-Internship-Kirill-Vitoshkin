@@ -94,6 +94,6 @@ export class MessageService {
   async isMessageInUser(userId: number, messageId: number) {
     const messages = await this.userService.getUserMessages(userId);
 
-    return (await messages.findIndex((elem) => elem.id === messageId)) !== -1;
+    return await messages.some((elem) => elem.id === messageId);
   }
 }

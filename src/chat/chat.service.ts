@@ -118,10 +118,6 @@ export class ChatService {
     });
     if (!dbChat) throw new UnauthorizedException();
 
-    return (
-      (await dbChat.members.findIndex(
-        (elem) => elem.id === +message.userId,
-      )) !== -1
-    );
+    return await dbChat.members.some((elem) => elem.id === +message.userId);
   }
 }

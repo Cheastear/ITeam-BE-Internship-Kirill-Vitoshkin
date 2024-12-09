@@ -22,8 +22,10 @@ export class MessageGateway {
   @WebSocketServer()
   server: Server<any, ServerToClientMessage>;
 
-  afterInit(socket: Socket) {
-    socket.use(SocketAuthMiddleware() as any);
+  afterInit(server: Server) {
+    const middleware: ReturnType<typeof SocketAuthMiddleware> =
+      SocketAuthMiddleware();
+    server.use(middleware);
   }
 
   private readonly logger = new Logger(MessageGateway.name);

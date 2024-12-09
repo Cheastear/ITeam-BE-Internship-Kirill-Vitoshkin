@@ -52,7 +52,7 @@ export class ChatController {
     description: `User with this id already in that chat`,
   })
   async createChat(@Request() req, @Body() chat: CreateChatDto) {
-    if ((await chat.members.findIndex((elem) => elem === req.user.id)) === -1)
+    if (!(await chat.members.some((elem) => elem === req.user.id)))
       await chat.members.push(req.user.id);
 
     return await this.chatService.createChat(chat);

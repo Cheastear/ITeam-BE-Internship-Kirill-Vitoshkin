@@ -8,20 +8,28 @@ import { AuthModule } from './auth/auth.module';
 import User from './users/users.entity';
 import Chat from './chat/chat.entity';
 import Message from './chat/message/message.entity';
-import 'dotenv/config';
 import { MessageModule } from './chat/message/message.module';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: '.env',
+    }),
     UsersModule,
     AuthModule,
     MessageModule,
     ChatModule,
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      url: process.env.DB_CONNECT,
-      entities: [User, Chat, Message],
-      synchronize: true,
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        type: 'postgres',
+        url: configService.get('DB_CONNECT'),
+        entities: [User, Chat, Message],
+        synchronize: true,
+      }),
     }),
   ],
   controllers: [AppController],
